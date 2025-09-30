@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>黒猫ポンポン（すばしっこい版）</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #fde7ed;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 12px;
+    }
+    h1 { margin: 0 0 6px; font-size: 20px; }
+    #score, #timer { margin: 0; font-size: 16px; }
+
+    #stage {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+    }
+    #cat {
+      position: absolute;
+      left: 0; top: 0;
+      width: min(50vw, 200px);  /* ←小さめに変更！ */
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-drag: none;
+      transform: translate(0,0);
+    }
+    #over {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      background: rgba(255,255,255,.5);
+      font-weight: 700;
+    }
+    #over.show { display: flex; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>黒猫のお尻ポンポン🐈‍⬛</h1>
+    <p id="score">スコア: 0</p>
+    <p id="timer">残り時間: 15秒</p>
+  </header>
+
+  <div id="stage">
+    <img id="cat" src="blackcat.png" alt="黒猫">
+    <div id="over">ゲーム終了！</div>
+  </div>
+
+  <script>
+    let score = 0;
+    let time = 15;
+    const scoreEl = document.getElementById("score");
+    const timerEl = document.getElementById("timer");
+    const cat = document.getElementById("cat");
+    const over = document.getElementById("over");
+
+    // クリックでスコア
+    cat.addEventListener("click", () => {
+      if (time <= 0) return;
+      score++;
+      scoreEl.textContent = "スコア: " + score + " にゃ〜🐾";
+      moveDuration = Math.max(300, moveDuration - 20);
+      jumpToNextTarget(true);
+    });
+
+    // 移動ロジック
+    let targetX = 0, targetY = 0;
+    let startX = 0, startY = 0;
+    let startT = 0, moveDuration = 500; // ←スピードアップ！
+    let animId = 0;
+
+    function bounds() {
+      const st = document.getElementById("stage").getBoundingClientRect();
+      const w = cat.offsetWidth;
+      const h = cat.offsetHeight;
+      return { maxX: st.width - w, maxY: st.height - h };
+    }
+    function randBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+    function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
+    function setCatPosition(x, y) {
+      cat.style.transform = `translate(${x}px, ${y}px)`;
+    }
+
+    function jumpToNextTarget(fromClick=false) {
+      const { maxX, maxY } = bounds();
+      startX = targetX; startY = targetY;
+      targetX = randBetween(0, maxX);
+      targetY = randBetween(0, maxY);
+      startT = performance.now();
+      if (!fromClick) moveDuration = 500;
+      if (!animId) animate();
+    }
+
+    function animate(now = performance.now()) {
+      const t = Math.min(1, (now - startT) / moveDuration);
+      const k = easeOutQuad(t);
+      const x = startX + (targetX - startX) * k;
+      const y = startY + (targetY - startY) * k;
+      setCatPosition(x, y);
+
+      if (t < 1) {
+        animId = requestAnimationFrame(animate);
+      } else {
+        animId = 0;
+        if (time > 0) setTimeout(() => jumpToNextTarget(), 200);
+      }
+    }
+
+    // 初期配置
+    window.addEventListener("load", () => {
+      const { maxX, maxY } = bounds();
+      startX = targetX = maxX / 2;
+      startY = targetY = maxY / 2;
+      setCatPosition(targetX, targetY);
+      setTimeout(() => jumpToNextTarget(), 300);
+    });
+
+    // タイマー
+    const timer = setInterval(() => {
+      time--;
+      timerEl.textContent = "残り時間: " + Math.max(0, time) + "秒";
+      if (time <= 0) {
+        clearInterval(timer);
+        over.classList.add("show");
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
